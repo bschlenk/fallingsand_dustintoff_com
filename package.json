@@ -1,0 +1,31 @@
+{
+  "name": "falling-sand",
+  "version": "0.0.1",
+  "description": "Falling Sand Game",
+  "keywords": [
+    "falling",
+    "sand"
+  ],
+  "author": "Dustin Toff <me@dustintoff.com>",
+  "constibutors": [
+      {
+          "name": "Brian Schlenker",
+          "email": "bschlenk@umich.edu"
+      }
+  ],
+  "license": "Apache 2.0",
+  "repository": "bschlenk/fallingsand_dustintoff_com",
+  "browser": "./dist/bundle.js",
+  "scripts": {
+    "build:dev": "webpack",
+    "build": "NODE_ENV=production webpack",
+    "watch": "webpack --watch"
+  },
+  "devDependencies": {
+    "file-loader": "^1.1.6",
+    "html-webpack-plugin": "^2.30.1",
+    "image-webpack-loader": "^4.1.0",
+    "uglifyjs-webpack-plugin": "^1.2.0",
+    "webpack": "^3.11.0"
+  }
+}

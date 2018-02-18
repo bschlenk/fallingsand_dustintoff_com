@@ -1,1 +1,6 @@
 /bazel-*
+node_modules
+dist
+
+#yolo
+shrinkwrap.yaml

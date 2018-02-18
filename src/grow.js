@@ -1,17 +1,6 @@
 // Copyright (c) 2016-2018 Dustin Toff
 // Licensed under Apache License v2.0
 
-/********************************************************
-TODO: Make liquids fill things faster (low priority)
-TODO: Add game mechanics
-TODO: Add heat
-TODO: Consider adding ashes from burnt plant
-TODO: Make shrub shrubbier
-TODO: Add wind?
-TODO: Make liquids run properly
-TODO: speed up game
-********************************************************/
-
 (function() {
     /*   ///////  // Variables //  ///////   */
     var particleSize = 5;
@@ -30,9 +19,7 @@ TODO: speed up game
 
     var loadingText = 'Loading...';
 
-    /** @type {!Object.<string, string>} */ const resource_root = RESOURCE_PATHS['Grow'];
-    var world = resource_root['world4.grw'];
-    var imageLocation = resource_root['images'];
+    const world = require('./maps/world4.grw');
 
     var playerColor = '#ff0000';
     var bulletColor = '#000000';
@@ -203,124 +190,83 @@ TODO: speed up game
             player.bullets[i] = new Bullet();
         }
 
-        /* Load game */
-        var client = new XMLHttpRequest();
-        client.open('GET', world);
-        var done = false;
-        client.onreadystatechange = function() {
-            var txt = client.responseText;
-
-            while (txt != '' && done) {
-                var x, y, width, height, type, shape, positioning;
-                txt = txt.substring(txt.indexOf('<')+1);
-
-                var tagType = txt.substring(0, txt.indexOf(' '));
-                txt = txt.substring(txt.indexOf(' ')+1);
-                if (tagType == 'elem') {
-                    while (txt.indexOf('>')!=0) {
-                        var property = txt.substring(0, txt.indexOf('='));
-                        txt = txt.substring(txt.indexOf('="')+2);
-                        var next = txt.indexOf('"');
-
-                        if (property=='shape')
-                            shape = txt.substring(0, next);
-                        else if (property=='x')
-                            x = parseFloat(txt.substring(0, next));
-                        else if (property=='y')
-                            y = parseFloat(txt.substring(0, next));
-                        else if (property=='width')
-                            width = parseFloat(txt.substring(0, next));
-                        else if (property=='height')
-                            height = parseFloat(txt.substring(0, next));
-                        else if (property=='type')
-                            type = txt.substring(0, next);
-                        else if (property=='position')
-                            positioning = txt.substring(0, next);
-
-                        txt = txt.substring(next + 1);
-                        while (txt.indexOf(' ')==0 || txt.indexOf('\t')==0 || txt.indexOf('\n')==0)
-                            txt = txt.substring(1);
+        /* load game */
+        (function loadGame() {
+            const partWidth = window.innerWidth/particleSize;
+            const partHeight = window.innerHeight/particleSize;
+            world.elements.forEach(({ shape, positioning, x, y, width, height, type }) => {
+                if (positioning === 'relative') {
+                    if (shape === 'rectangle') {
+                        rectanglePoint(
+                            parseInt(partWidth * x, 10),
+                            parseInt(partHeight * y, 10),
+                            partWidth * width,
+                            partHeight * height,
+                            type, true, []);
+                    } else if (shape === 'circle') {
+                        circlePoint(
+                            parseInt(partWidth * x, 10),
+                            parseInt(partHeight * y, 10),
+                            parseInt(partWidth * width, 10),
+                            type, true, []);
+                    } else if (shape === 'elipse') {
+                        elipsePoint(
+                            parseInt(partWidth * x, 10),
+                            parseInt(partHeight * y, 10),
+                            parseInt(partWidth * width, 10),
+                            parseInt(partHeight * height, 10),
+                            type, true, []);
                     }
-                } else if (tagType == 'player') {
-                    while (txt.indexOf('>')!=0) {
-                        var property = txt.substring(0, txt.indexOf('='));
-                        txt = txt.substring(txt.indexOf('="')+2);
-                        var next = txt.indexOf('"');
-
-                        if (property=='x')
-                            x = parseFloat(txt.substring(0, next));
-                        else if (property=='y')
-                            y = parseFloat(txt.substring(0, next));
-                        else if (property=='position')
-                            positioning = txt.substring(0, next);
-
-                        txt = txt.substring(next + 1);
-                        while (txt.indexOf(' ')==0 || txt.indexOf('\t')==0 || txt.indexOf('\n')==0)
-                            txt = txt.substring(1);
+                } else if (positioning === 'absolute') {
+                    if (shape === 'rectangle') {
+                        rectanglePoint(x, y, width, height, type, true, []);
+                    } else if (shape === 'circle') {
+                        circlePoint(x, y, width, type, true, []);
+                    } else if (shape === 'elipse') {
+                        elipsePoint(x, y, width, height, type, true, []);
                     }
                 }
+            });
 
-                txt = txt.substring(txt.indexOf('>')+1);
-
-                var partWidth = window.innerWidth/particleSize;
-                var partHeight = window.innerHeight/particleSize;
-                if (tagType=='elem') {
-                    if (positioning=='relative') {
-                        if (shape=='rectangle')
-                            rectanglePoint(parseInt(partWidth * x, 10), parseInt(partHeight * y, 10), partWidth * width, partHeight * height, type, true, []);
-                        else if (shape=='circle')
-                            circlePoint(parseInt(partWidth * x, 10), parseInt(partHeight * y, 10), parseInt(partWidth * width, 10), type, true, []);
-                        else if (shape=='elipse')
-                            elipsePoint(parseInt(partWidth * x, 10), parseInt(partHeight * y, 10), parseInt(partWidth * width, 10), parseInt(partHeight * height, 10), type, true, []);
-                    } else if (positioning=='absolute') {
-                        if (shape=='rectangle')
-                            rectanglePoint(x, y, width, height, type, true, []);
-                        else if (shape=='circle')
-                            circlePoint(x, y, width, type, true, []);
-                        else if (shape=='elipse')
-                            elipsePoint(x, y, width, height, type, true, []);
-                    }
-                } else if (tagType=='player') {
-                        point.clearRect(player.x * particleSize, player.y * particleSize, particleSize, particleSize);
-                    if (positioning=='relative') {
-                        player.x = parseInt(partWidth * x, 10);
-                        player.y = parseInt(partHeight * y, 10);
-                    } else if (positioning=='absolute') {
-                        player.x = parseInt(x, 10);
-                        player.y = parseInt(y, 10);
-                    }
-
+            if (world.player) {
+                const { x, y, positioning } = world.player;
+                point.clearRect(player.x * particleSize, player.y * particleSize, particleSize, particleSize);
+                if (positioning == 'relative') {
+                    player.x = parseInt(partWidth * x, 10);
+                    player.y = parseInt(partHeight * y, 10);
+                } else if (positioning === 'absolute') {
+                    player.x = parseInt(x, 10);
+                    player.y = parseInt(y, 10);
                 }
+
             }
-            done = true;
-        };
-        client.send();
+        })();
         /* End load game */
 
         /* Load images images */
         growthImage = new Image();
         growthImage.opacity = opacity;
-        growthImage.src = imageLocation['growth.png'];
+        growthImage.src = require('./images/growth.png');
 
         dropletImage = new Image();
         dropletImage.opacity = opacity;
-        dropletImage.src = imageLocation['droplet.png'];
+        dropletImage.src = require('./images/droplet.png');
 
         steamImage = new Image();
         steamImage.opacity = opacity;
-        steamImage.src = imageLocation['steam.png'];
+        steamImage.src = require('./images/steam.png');
 
         fireImage = new Image();
         fireImage.opacity = opacity;
-        fireImage.src = imageLocation['fire.png'];
+        fireImage.src = require('./images/fire.png');
 
         wallImage = new Image();
         wallImage.opacity = opacity;
-        wallImage.src = imageLocation['wall.png'];
+        wallImage.src = require('./images/wall.png');
 
         genImage = new Image();
         genImage.opacity = opacity;
-        genImage.src = imageLocation['gen.png'];
+        genImage.src = require('./images/gen.png');
 
         isDown = false;
         elemType = 'droplet';
